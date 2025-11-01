@@ -1,0 +1,24 @@
+import z from "zod";
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  PORT: z.string().default("8000"), // read as string from env
+  DATABASE_URL: z.string(),
+  SHADOW_DATABASE_URL: z.string(),
+});
+
+// 2. Parse and validate
+
+const env = envSchema.parse(process.env);
+
+
+// 3. Export centralized config
+
+export const appEnv = {
+  env: env.NODE_ENV,
+  port: Number(env.PORT),
+  database: {
+    main: env.DATABASE_URL,
+    shadow: env.SHADOW_DATABASE_URL,
+  },
+};
