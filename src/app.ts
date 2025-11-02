@@ -1,5 +1,7 @@
 import express, { Application } from "express";
 import cors from "cors"
+import router from "./router/index.router";
+import { errorHandler } from "./middelware/errorHandler";
 // import helmet from "helmet"
 // import { limiter, timeoutMiddleware } from "./middleware/timeoutMiddleware";
 
@@ -21,11 +23,12 @@ app.use(express.json());
 // app.use(helmet())
 
 
-// app.use("/api/v1",indexRoute)
+app.use("/api/v1",router)
 // Health check route
 app.get("/", (_req, res) => {
   res.send({ message: "API is running" });
 });
+app.use(errorHandler)
 
 
 export default app;
