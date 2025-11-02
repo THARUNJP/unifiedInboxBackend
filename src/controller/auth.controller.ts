@@ -13,6 +13,7 @@ async function register(
 
     return res.status(201).json({
       // later try to return class based sucess response
+      status: true,
       message: "User registered successfully",
       user,
     });
@@ -39,7 +40,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
   }
 }
 
- async function getUser(req: Request, res: Response, next: NextFunction) {
+async function getUser(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = req.user?.id; // added by auth middleware after verifying token
 
@@ -50,6 +51,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
     const user = await AuthService.getUser(userId);
 
     return res.status(200).json({
+      status: true,
       message: "User fetched successfully",
       data: user,
     });

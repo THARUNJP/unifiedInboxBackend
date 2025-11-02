@@ -20,7 +20,7 @@ export const registerSchema = z.object({
       /[!@#$%^&*(),.?":{}|<>]/,
       "Password must contain at least one special character"
     ),
-});
+}).strict();
 
 /**
  * Login Schema
@@ -31,7 +31,7 @@ export const loginSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(64, "Password must be less than 64 characters"),
-});
+}).strict();
 
 /**
  * Types
