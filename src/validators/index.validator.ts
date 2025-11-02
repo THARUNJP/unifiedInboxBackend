@@ -1,11 +1,15 @@
 import { validateBody } from "../middelware/validator";
 import { loginSchema, registerSchema } from "./auth.validator";
 import { contactSchema } from "./contact.validator";
+import { addTeamMemberSchema, createTeamSchema, updateTeamMemberSchema } from "./team.validator";
 
 
 
 export const validators = {
   register: validateBody(registerSchema),
   login: validateBody(loginSchema),
-  contact:validateBody(contactSchema)
+  contact:validateBody(contactSchema),
+  team:validateBody(createTeamSchema),
+  addTeamMember:validateBody(addTeamMemberSchema),
+  updateTeamMember:validateBody(updateTeamMemberSchema)
 };
