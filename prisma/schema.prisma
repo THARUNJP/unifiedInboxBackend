@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+/// =====================================================
+/// USERS & ROLES
+/// =====================================================
+
+model User {
+  id             String    @id @default(ulid())
+  email          String    @unique
+  name           String?
+  passwordHash   String?   // Hashed password (never store raw)
+  role           Role      @default(VIEWER)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  teams          TeamMember[]
+  notes          Note[]
+  scheduledMsgs  ScheduledMessage[]
+}
+
+enum Role {
+  VIEWER
+  EDITOR
+  ADMIN
+}
+
+/// =====================================================
+/// TEAMS (For multi-user collaboration)
+/// =====================================================
+
+model Team {
+  id            String        @id @default(ulid())
+  name          String
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+
+  members       TeamMember[]
+  channels      Channel[]
+  contacts      Contact[]
+  conversations Conversation[]
+  notes         Note[]
+  callLogs      CallLog[]
+}
+
+model TeamMember {
+  id        String  @id @default(ulid())
+  userId    String
+  teamId    String
+  role      Role    @default(VIEWER)
+
+  user      User    @relation(fields: [userId], references: [id])
+  team      Team    @relation(fields: [teamId], references: [id])
+}
+
+/// =====================================================
+/// CHANNELS (Integrations like Twilio, Gmail, Twitter etc.)
+/// =====================================================
+
+model Channel {
+  id              String     @id @default(ulid())
+  teamId          String
+  type            ChannelType
+  name            String?
+  encryptedCredentials Json  // Encrypted at app layer
+  status          ChannelStatus @default(ACTIVE)
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  team            Team       @relation(fields: [teamId], references: [id])
+  messages        Message[]
+  conversations   Conversation[]
+  scheduledMsgs   ScheduledMessage[]
+  callLogs        CallLog[]
+}
+
+enum ChannelType {
+  TWILIO_SMS
+  TWILIO_WHATSAPP
+  EMAIL
+  TWITTER_DM
+  FACEBOOK_MESSENGER
+  HUBSPOT
+  SLACK
+  OTHER
+}
+
+enum ChannelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// =====================================================
+/// CONTACTS (Unified across all channels)
+/// =====================================================
+
+model Contact {
+  id              String         @id @default(ulid())
+  teamId          String
+  name            String?
+  phone           String?        @unique
+  email           String?        @unique
+  socialHandles   Json?          // { twitter: "...", facebook: "..." }
+  mergedContactId String?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  team            Team           @relation(fields: [teamId], references: [id])
+  conversations   Conversation[]
+  notes           Note[]
+  messages        Message[]
+  scheduledMsgs   ScheduledMessage[]
+  callLogs        CallLog[]
+}
+
+/// =====================================================
+/// CONVERSATIONS (Grouped by Contact + Channel)
+/// =====================================================
+
+model Conversation {
+  id            String     @id @default(ulid())
+  teamId        String
+  contactId     String
+  channelId     String
+  subject       String?
+  lastMessageAt DateTime?
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  team          Team        @relation(fields: [teamId], references: [id])
+  contact       Contact     @relation(fields: [contactId], references: [id])
+  channel       Channel     @relation(fields: [channelId], references: [id])
+  messages      Message[]
+  notes         Note[]
+}
+
+/// =====================================================
+/// MESSAGES (Inbound & Outbound across all channels)
+/// =====================================================
+
+model Message {
+  id              String     @id @default(ulid())
+  conversationId  String
+  channelId       String
+  contactId       String
+  direction       MessageDirection
+  type            MessageType
+  content         String?
+  mediaUrl        String?
+  status          MessageStatus @default(SENT)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  receivedAt      DateTime?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  contact         Contact      @relation(fields: [contactId], references: [id])
+  channel         Channel      @relation(fields: [channelId], references: [id])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+}
+
+enum MessageStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+/// =====================================================
+/// NOTES (Internal collaboration comments)
+/// =====================================================
+
+model Note {
+  id              String     @id @default(ulid())
+  teamId          String
+  userId          String
+  contactId       String?
+  conversationId  String?
+  content         String
+  isPrivate       Boolean    @default(false)  // if true, encrypt content
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  team            Team        @relation(fields: [teamId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+  contact         Contact?    @relation(fields: [contactId], references: [id])
+  conversation    Conversation? @relation(fields: [conversationId], references: [id])
+}
+
+/// =====================================================
+/// SCHEDULED MESSAGES (Auto follow-ups)
+/// =====================================================
+
+model ScheduledMessage {
+  id            String     @id @default(ulid())
+  userId        String
+  contactId     String
+  channelId     String
+  content       String
+  sendAt        DateTime
+  status        ScheduledStatus @default(PENDING)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  user          User       @relation(fields: [userId], references: [id])
+  contact       Contact    @relation(fields: [contactId], references: [id])
+  channel       Channel    @relation(fields: [channelId], references: [id])
+}
+
+enum ScheduledStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+/// =====================================================
+/// CALL LOGS (Twilio Client / Voice)
+/// =====================================================
+
+model CallLog {
+  id              String     @id @default(ulid())
+  teamId          String
+  contactId       String
+  channelId       String
+  sid             String?
+  direction       MessageDirection
+  status          String?
+  duration        Int?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  recordingUrl    String?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+
+  team            Team        @relation(fields: [teamId], references: [id])
+  contact         Contact     @relation(fields: [contactId], references: [id])
+  channel         Channel     @relation(fields: [channelId], references: [id])
+}

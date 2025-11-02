@@ -36,3 +36,5 @@ build/
 
 # Optional: Coverage folder for tests
 coverage/
+
+/src/generated/prisma
