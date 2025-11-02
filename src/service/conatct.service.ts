@@ -159,7 +159,7 @@ export const deleteContact = async (userId: string, contactId: string) => {
   // Step 3: Soft delete (mark inactive)
   await prisma.contact.update({
     where: { id: contactId },
-    data: { isActive: !contact.isActive },
+    data: { isActive: false },
   });
 
   return { message: "Contact archived successfully" };

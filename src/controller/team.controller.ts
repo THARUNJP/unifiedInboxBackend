@@ -112,7 +112,7 @@ async function updateTeamMemberRole(
       return res.status(401).json({ status: false, message: "Unauthorized" });
 
     const { teamId, memberId } = req.params;
-      if (!teamId || typeof teamId !== "string")
+    if (!teamId || typeof teamId !== "string")
       return res.status(400).json({ status: false, message: "Invalid teamId" });
 
     if (!memberId || typeof memberId !== "string")
@@ -147,10 +147,98 @@ async function updateTeamMemberRole(
   }
 }
 
+async function deleteTeamMember(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> {
+  try {
+    const userId = req.user?.id;
+    const { teamId, memberId } = req.params;
+
+    if (!userId)
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+
+    if (!teamId || !memberId) {
+      return res
+        .status(400)
+        .json({ status: false, message: "Invalid teamId or memberId" });
+    }
+
+    const result = await TeamService.deleteTeamMember(teamId, userId, memberId);
+
+    return res.status(200).json({
+      status: true,
+      message: result.message,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getTeamMembers(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> {
+  try {
+    const userId = req.user?.id;
+    const { teamId } = req.params;
+
+    if (!userId)
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+    if (!teamId)
+      return res
+        .status(400)
+        .json({ status: false, message: "Team ID is required" });
+
+    const members = await TeamService.getTeamMembers(teamId, userId);
+
+    return res.status(200).json({
+      status: true,
+      message: "Team members fetched successfully",
+      data: members,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteTeam(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> {
+  try {
+    const userId = req.user?.id;
+    const { teamId } = req.params;
+
+    if (!userId)
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+
+    if (!teamId)
+      return res
+        .status(400)
+        .json({ status: false, message: "Team ID required" });
+
+    const result = await TeamService.deleteTeam(teamId, userId);
+
+    return res.status(200).json({
+      status: true,
+      message: result.message,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export {
   createTeam,
   getAllTeams,
   getTeamById,
   addTeamMember,
   updateTeamMemberRole,
+  deleteTeamMember,
+  getTeamMembers,
+  deleteTeam,
 };

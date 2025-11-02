@@ -7,6 +7,7 @@ export const createTeam = async (teamName: string, userId: string) => {
     const team = await tx.team.create({
       data: {
         name: teamName,
+        createdById:userId
       },
     });
 
@@ -15,6 +16,7 @@ export const createTeam = async (teamName: string, userId: string) => {
         userId,
         teamId: team.id,
         role: "ADMIN",
+        
       },
     });
 
@@ -148,4 +150,93 @@ export const updateTeamMemberRole = async (
   });
 
   return updated;
+};
+
+export const deleteTeamMember = async (
+  teamId: string,
+  userId: string,
+  memberId: string
+) => {
+  if (memberId === userId) {
+    throw new Forbidden("You cannot remove yourself from the team");
+  }
+
+  // Verify admin access
+  const adminRecord = await prisma.teamMember.findFirst({
+    where: { teamId, userId },
+  });
+  if (!adminRecord) throw new NotFound("Team not found or access denied");
+  if (adminRecord.role !== "ADMIN")
+    throw new Forbidden("Only admins can remove members");
+
+  // Check member existence
+  const memberRecord = await prisma.teamMember.findFirst({
+    where: { teamId, userId: memberId },
+  });
+  if (!memberRecord) throw new NotFound("Member not found in this team");
+
+  // Delete the member
+  await prisma.teamMember.delete({
+    where: { id: memberRecord.id },
+  });
+
+  return { message: "Member removed successfully" };
+};
+
+export const getTeamMembers = async (teamId: string, userId: string) => {
+  // 1️ Verify that the user is a member of the team
+  const membership = await prisma.teamMember.findFirst({
+    where: { teamId, userId },
+  });
+
+  if (!membership)
+    throw new Forbidden("Access denied. You are not a member of this team.");
+
+  // 2️ Fetch all members with their user details
+  const members = await prisma.teamMember.findMany({
+    where: { teamId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return members;
+};
+
+export const deleteTeam = async (teamId: string, userId: string) => {
+  const adminRecord = await prisma.teamMember.findFirst({
+    where: { teamId, userId },
+  });
+
+  if (!adminRecord) throw new NotFound("Team not found or access denied");
+  if (adminRecord.role !== "ADMIN")
+    throw new Forbidden("Only admins can delete this team");
+
+    const team = await prisma.team.update({
+    where: { id: teamId },
+    data: { isActive: false },
+  });
+
+  // Optional: deactivate all related entities
+  await prisma.contact.updateMany({
+    where: { teamId },
+    data: { isActive: false },
+  });
+  await prisma.note.updateMany({
+    where: { teamId },
+    data: { isActive: false },
+  });
+  await prisma.conversation.updateMany({
+    where: { teamId },
+    data: { isActive: false },
+  });
+
+  return { message: "Team archived successfully", team };
+
 };
