@@ -7,3 +7,9 @@ export interface jwtObject {
 
 export type AssignableRole = Exclude<Role, "ADMIN">;
 
+export interface CreateNoteParams {
+  contactId: string;
+  content: string;
+  isPrivate: boolean;
+  userId: string;
+}
