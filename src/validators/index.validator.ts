@@ -1,6 +1,7 @@
 import { validateBody } from "../middelware/validator";
 import { loginSchema, registerSchema } from "./auth.validator";
 import { contactSchema } from "./contact.validator";
+import { createMessageSchema } from "./message.validator";
 import { createNoteSchema, updateNoteSchema } from "./note.validator";
 import {
   addTeamMemberSchema,
@@ -17,4 +18,5 @@ export const validators = {
   updateTeamMember: validateBody(updateTeamMemberSchema),
   createNote: validateBody(createNoteSchema),
   updateNote: validateBody(updateNoteSchema),
+  createMessage:validateBody(createMessageSchema)
 };
